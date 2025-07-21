@@ -82,22 +82,4 @@ variable "security_groups" {
   }))
   description = "Список групп безопасности для создания"
   default = []
-
-# variable "security_group_egress" {
-#   description = "Правила для исходящего трафика"
-#   type = list(object({
-#     protocol       = string
-#     description    = string
-#     v4_cidr_blocks = list(string)
-#     port           = optional(number)
-#     from_port      = optional(number)
-#     to_port        = optional(number)
-#   }))
-#   default = [
-#     {
-#       protocol       = "ANY"
-#       description    = "Allow all outbound traffic"
-#       v4_cidr_blocks = ["0.0.0.0/0"]
-#     }
-#   ]
 }
