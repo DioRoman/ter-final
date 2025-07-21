@@ -16,13 +16,21 @@
  
 Задание 1. Развертывание инфраструктуры в Yandex Cloud.
 
-    Создайте Virtual Private Cloud (VPC).
+    Создал 2 модуля: для vpc и vm
 
-    
-    Создайте подсети.
+https://github.com/DioRoman/ter-final/tree/main/src/modules/yandex-vpc
+https://github.com/DioRoman/ter-final/tree/main/src/modules/yandex-vm
+
+    На основе модулей создаю виртуальные машины, сеть и подсети.
+
+https://github.com/DioRoman/ter-final/tree/main/src
+ 
     Создайте виртуальные машины (VM):
     Настройте группы безопасности (порты 22, 80, 443).
     Привяжите группу безопасности к VM.
+
+сославшись на них 
+
     Опишите создание БД MySQL в Yandex Cloud.
     Опишите создание Container Registry.
  

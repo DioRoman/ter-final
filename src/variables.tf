@@ -45,4 +45,3 @@ variable "vm_ssh_root_key" {
   default     = "~/.ssh/id_ed25519.pub"
   description = "ssh-keygen -t ed25519"
 }
-
