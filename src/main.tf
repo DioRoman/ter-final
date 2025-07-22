@@ -2,7 +2,7 @@ module "yandex-vpc" {
   source       = "./modules/yandex-vpc"
   env_name     = var.web[0].env_name
   subnets = [
-    { zone = var.vpc_default_zone[2], cidr = var.vpc_default_cidr[0] }
+    { zone = var.vpc_default_zone[0], cidr = var.vpc_default_cidr[1] }
   ]
   security_groups = [
     {
@@ -43,7 +43,7 @@ module "web-vm" {
   source              = "./modules/yandex-vm"
   vm_name             = var.web[0].instance_name 
   vm_count            = var.web[0].instance_count
-  zone                = var.vpc_default_zone[2]
+  zone                = var.vpc_default_zone[0]
   subnet_ids          = module.yandex-vpc.subnet_ids
   image_id            = data.yandex_compute_image.ubuntu.id
   platform_id         = var.web[0].platform_id
@@ -73,4 +73,85 @@ data "template_file" "cloudinit" {
 
 data "yandex_compute_image" "ubuntu" {
   family = var.vm_web_image_family
+}
+
+module "mysql" {
+  source = "github.com/terraform-yacloud-modules/terraform-yandex-mdb-mysql?ref=v1.20.0"
+
+  network_id     = module.yandex-vpc.network_id             # ID вашей сети VPC
+  subnet_zones   = [var.vpc_default_zone[0]]          # Одна зона для минимальных затрат
+  subnet_id      = module.yandex-vpc.subnet_ids           # ID подсети в зоне
+  name           = "dio-mysql-cluster"
+
+  version_sql    = "8.0"
+
+  # Экономичный ресурсный профиль — самый маленький available (например, b1.nano)
+  resource_preset_id = "b1.medium"
+
+  disk_type_id   = "network-hdd"                  # HDD дешевле SSD
+  disk_size      = 10                              # Минимальный размер диска
+
+  # HA отключен, чтобы платить за один узел, а не 3
+  ha             = false
+
+  # Отключить публичный IP — экономия на трафике и безопасности
+  assign_public_ip = false
+
+  labels = {
+    created_by = "terraform_mysql_min_cost"
+  }
+
+  # Выключаем опции, которые могут увеличить стоимость
+  access = {
+    web_sql = false       # Если не нужен веб-доступ — отключаем
+  }
+
+  performance_diagnostics = {
+    enabled = false        # Отключаем диагностику для экономии
+  }
+
+  # Отключаем резервное копирование (если можно, или минимизируем)
+  backup_window_start = null
+
+  deletion_protection = false
+  
+}
+
+resource "yandex_mdb_mysql_database" "my_db" {
+  cluster_id = module.mysql.id # ID кластера из модуля
+  name       = "dio-db"
+}
+
+resource "yandex_mdb_mysql_user" "admin_user" {
+  cluster_id = module.mysql.id
+  name       = "dio"
+  password   = data.yandex_lockbox_secret_version.mysql_password.entries["password"].text_value
+  permission {
+    database_name = yandex_mdb_mysql_database.my_db.name
+    roles         = ["ALL"]
+  }
+}
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+  numeric = true
+  upper   = true
+  lower   = true
+}
+resource "yandex_lockbox_secret" "mysql_password_secret" {
+  name      = "mysql-password-secret"
+  folder_id = local.folder_id
+  deletion_protection = true
+}
+
+resource "yandex_lockbox_secret_version" "mysql_password_version" {
+  secret_id = yandex_lockbox_secret.mysql_password_secret.id
+
+  entries {
+    key        = "password"
+    text_value = random_password.db_password.result
+  }
+}
+data "yandex_lockbox_secret_version" "mysql_password" {
+  secret_id = yandex_lockbox_secret.my_secret.id
 }

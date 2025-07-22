@@ -32,6 +32,10 @@ terraform {
       source  = "hashicorp/template"
       version = ">=2"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.0.0"
+    }
   }
   required_version = ">=1.8"
 }

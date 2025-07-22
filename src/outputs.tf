@@ -10,3 +10,24 @@ output "web_ssh" {
     for ip in module.web-vm.external_ips : "ssh -l ubuntu ${ip}"
   ]
 }
+
+output "mysql_host" {
+  value = module.mysql.fqdn
+}
+
+output "mysql_port" {
+  value = 3306
+}
+
+output "mysql_database" {
+  value = yandex_mdb_mysql_database.my_db.name
+}
+
+output "mysql_user" {
+  value = yandex_mdb_mysql_user.admin_user.name
+}
+
+output "mysql_password" {
+  value     = random_password.db_password.result
+  sensitive = true
+}

@@ -6,7 +6,7 @@ variable "web" {
     { 
     env_name          = "production",
     instance_name     = "web", 
-    instance_count    = 3, 
+    instance_count    = 1, 
     public_ip         = true,
     platform_id       = "standard-v3",
     cores             = 2,
