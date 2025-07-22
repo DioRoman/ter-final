@@ -1,3 +1,5 @@
+https://netology.ru/profile/program/shter-19/lessons/490168/lesson_items/2655618
+
 Цель итогового проекта:
     развернуть web-приложение для работы в облачной инфраструктуре Yandex Cloud.
 
@@ -29,12 +31,13 @@ https://github.com/DioRoman/ter-final/tree/main/src
     Настройте группы безопасности (порты 22, 80, 443).
     Привяжите группу безопасности к VM.
 
-сославшись на них 
 
     Опишите создание БД MySQL в Yandex Cloud.
     Опишите создание Container Registry.
  
 Задание 2. Используя user-data (cloud-init), установите Docker и Docker Compose (см. Задания 5 модуля «Виртуализация и контейнеризация»).
+
+https://github.com/DioRoman/ter-final/blob/main/src/cloud-init.yml
 
 Задание 3. Опишите Docker файл (см. Задания 5 «Виртуализация и контейнеризация») c web-приложением и сохраните контейнер в Container Registry.
 

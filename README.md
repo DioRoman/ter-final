@@ -1,4 +1,4 @@
-# ter_vm_dev
+# ter-final
 
 cd /mnt/c/Users/rlyst/Netology/ter-final/src
 
