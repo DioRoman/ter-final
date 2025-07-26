@@ -78,39 +78,34 @@ data "yandex_compute_image" "ubuntu" {
 module "mysql" {
   source = "github.com/terraform-yacloud-modules/terraform-yandex-mdb-mysql?ref=v1.20.0"
 
-  network_id     = module.yandex-vpc.network_id             # ID вашей сети VPC
-  subnet_zones   = [var.vpc_default_zone[0]]          # Одна зона для минимальных затрат
-  subnet_id      = module.yandex-vpc.subnet_ids           # ID подсети в зоне
+  network_id     = module.yandex-vpc.network_id        
+  subnet_zones   = [var.vpc_default_zone[0]]  
+  subnet_id      = module.yandex-vpc.subnet_ids
   name           = "dio-mysql-cluster"
 
   version_sql    = "8.0"
 
-  # Экономичный ресурсный профиль — самый маленький available (например, b1.nano)
   resource_preset_id = "b1.medium"
 
-  disk_type_id   = "network-hdd"                  # HDD дешевле SSD
-  disk_size      = 10                              # Минимальный размер диска
+  disk_type_id   = "network-hdd"
+  disk_size      = 10
 
-  # HA отключен, чтобы платить за один узел, а не 3
   ha             = false
 
-  # Отключить публичный IP — экономия на трафике и безопасности
   assign_public_ip = false
 
   labels = {
     created_by = "terraform_mysql_min_cost"
   }
 
-  # Выключаем опции, которые могут увеличить стоимость
   access = {
-    web_sql = false       # Если не нужен веб-доступ — отключаем
+    web_sql = false
   }
 
   performance_diagnostics = {
-    enabled = false        # Отключаем диагностику для экономии
+    enabled = false
   }
 
-  # Отключаем резервное копирование (если можно, или минимизируем)
   backup_window_start = null
 
   deletion_protection = false
@@ -118,14 +113,14 @@ module "mysql" {
 }
 
 resource "yandex_mdb_mysql_database" "my_db" {
-  cluster_id = module.mysql.id # ID кластера из модуля
+  cluster_id = module.mysql.id
   name       = "dio-db"
 }
 
 resource "yandex_mdb_mysql_user" "admin_user" {
   cluster_id = module.mysql.id
   name       = "dio"
-  password   = data.yandex_lockbox_secret_version.mysql_password.entries["password"].text_value
+  password   = data.yandex_lockbox_secret_version.mysql_password.entries[0].text_value
   permission {
     database_name = yandex_mdb_mysql_database.my_db.name
     roles         = ["ALL"]
@@ -140,7 +135,7 @@ resource "random_password" "db_password" {
 }
 resource "yandex_lockbox_secret" "mysql_password_secret" {
   name      = "mysql-password-secret"
-  folder_id = local.folder_id
+  folder_id = var.folder_id
   deletion_protection = true
 }
 
@@ -153,5 +148,5 @@ resource "yandex_lockbox_secret_version" "mysql_password_version" {
   }
 }
 data "yandex_lockbox_secret_version" "mysql_password" {
-  secret_id = yandex_lockbox_secret.my_secret.id
+  secret_id = yandex_lockbox_secret.mysql_password_secret.id
 }

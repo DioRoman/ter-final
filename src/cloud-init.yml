@@ -6,8 +6,22 @@ users:
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
       - ${ssh_public_key}
+
 package_update: true
 package_upgrade: false
 packages:
   - docker
   - docker-compose
+
+write_files:
+  - path: /home/ubuntu/myscript.sh
+    permissions: '0755'
+    owner: ubuntu:ubuntu
+    content: |
+      #!/bin/bash
+      git clone https://github.com/DioRoman/shvirtd-example-python.git
+      mv shvirtd-example-python /opt
+      docker compose -f /opt/shvirtd-example-python/compose.yaml up -d
+
+runcmd:
+  - /home/ubuntu/myscript.sh
