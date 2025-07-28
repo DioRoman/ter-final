@@ -1,3 +1,5 @@
+# Создание сетей, подсетей и групп безопасности
+
 module "yandex-vpc" {
   source       = "./modules/yandex-vpc"
   env_name     = var.web[0].env_name
@@ -39,6 +41,7 @@ module "yandex-vpc" {
   ]
 }
 
+# Создание VM
 module "web-vm" {
   source              = "./modules/yandex-vm"
   vm_name             = var.web[0].instance_name 
@@ -57,13 +60,21 @@ module "web-vm" {
     env  = var.web[0].env_name
     role = var.web[0].role
   }
-
   metadata = {
     user-data = data.template_file.cloudinit.rendered
     serial-port-enable = local.serial-port-enable
   }  
+
+  depends_on = [
+  module.yandex-vpc,
+  module.mysql,
+  yandex_mdb_mysql_database.my_db,
+  yandex_mdb_mysql_user.admin_user
+  ]
 }
 
+
+# Инициализация 
 data "template_file" "cloudinit" {
   template = file("./cloud-init.yml")
     vars = {
@@ -71,10 +82,13 @@ data "template_file" "cloudinit" {
   }
 }
 
+# Получение id образа Ubuntu
 data "yandex_compute_image" "ubuntu" {
   family = var.vm_web_image_family
 }
 
+
+# Создание кластера MYSQL
 module "mysql" {
   source = "github.com/terraform-yacloud-modules/terraform-yandex-mdb-mysql?ref=v1.20.0"
 
@@ -82,21 +96,12 @@ module "mysql" {
   subnet_zones   = [var.vpc_default_zone[0]]  
   subnet_id      = module.yandex-vpc.subnet_ids
   name           = "dio-mysql-cluster"
-
   version_sql    = "8.0"
-
   resource_preset_id = "b1.medium"
-
   disk_type_id   = "network-hdd"
   disk_size      = 10
-
   ha             = false
-
   assign_public_ip = false
-
-  labels = {
-    created_by = "terraform_mysql_min_cost"
-  }
 
   access = {
     web_sql = false
@@ -107,25 +112,15 @@ module "mysql" {
   }
 
   backup_window_start = null
-
   deletion_protection = false
   
+  depends_on = [
+  module.yandex-vpc
+  ]
+
 }
 
-resource "yandex_mdb_mysql_database" "my_db" {
-  cluster_id = module.mysql.id
-  name       = "dio-db"
-}
-
-resource "yandex_mdb_mysql_user" "admin_user" {
-  cluster_id = module.mysql.id
-  name       = "dio"
-  password   = data.yandex_lockbox_secret_version.mysql_password.entries[0].text_value
-  permission {
-    database_name = yandex_mdb_mysql_database.my_db.name
-    roles         = ["ALL"]
-  }
-}
+# Генерация пароля
 resource "random_password" "db_password" {
   length  = 16
   special = true
@@ -133,10 +128,10 @@ resource "random_password" "db_password" {
   upper   = true
   lower   = true
 }
+
 resource "yandex_lockbox_secret" "mysql_password_secret" {
-  name      = "mysql-password-secret"
-  folder_id = var.folder_id
-  deletion_protection = true
+  name       = "mysql-password-secret"
+  folder_id  = var.folder_id
 }
 
 resource "yandex_lockbox_secret_version" "mysql_password_version" {
@@ -147,6 +142,26 @@ resource "yandex_lockbox_secret_version" "mysql_password_version" {
     text_value = random_password.db_password.result
   }
 }
-data "yandex_lockbox_secret_version" "mysql_password" {
-  secret_id = yandex_lockbox_secret.mysql_password_secret.id
+
+data "yandex_lockbox_secret_version" "mysql_password_data" {
+  secret_id  = yandex_lockbox_secret.mysql_password_secret.id
+  version_id = yandex_lockbox_secret_version.mysql_password_version.id
+}
+
+# Создание базы данных MYSQL
+
+resource "yandex_mdb_mysql_database" "my_db" {
+  cluster_id = module.mysql.id
+  name       = "dio-db"
+}
+
+# Создание пользователя MYSQL
+resource "yandex_mdb_mysql_user" "admin_user" {
+  cluster_id = module.mysql.id
+  name       = "dio"
+  password = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
+  permission {
+    database_name = yandex_mdb_mysql_database.my_db.name
+    roles         = ["ALL"]
+  }
 }

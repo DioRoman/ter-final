@@ -28,7 +28,6 @@ output "mysql_user" {
 }
 
 output "mysql_password" {
-  value     = random_password.db_password.result
+  value     = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
   sensitive = true
 }
-

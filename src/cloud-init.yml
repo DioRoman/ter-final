@@ -10,8 +10,10 @@ users:
 package_update: true
 package_upgrade: false
 packages:
-  - docker
-  - docker-compose
+  - docker-ce 
+  - docker-ce-cli 
+  - containerd.io 
+  - docker-compose-plugin
 
 write_files:
   - path: /home/ubuntu/myscript.sh
@@ -19,9 +21,10 @@ write_files:
     owner: ubuntu:ubuntu
     content: |
       #!/bin/bash
+      cd /home/ubuntu
       git clone https://github.com/DioRoman/shvirtd-example-python.git
       mv shvirtd-example-python /opt
-      docker compose -f /opt/shvirtd-example-python/compose.yaml up -d
+      docker compose -f /opt/shvirtd-example-python/compose.yaml -f /opt/shvirtd-example-python/proxy.yaml up -d
 
 runcmd:
   - /home/ubuntu/myscript.sh
