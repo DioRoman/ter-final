@@ -8,23 +8,33 @@ users:
       - ${ssh_public_key}
 
 package_update: true
-package_upgrade: false
+package_upgrade: true
 packages:
-  - docker-ce 
-  - docker-ce-cli 
-  - containerd.io 
-  - docker-compose-plugin
-
-write_files:
-  - path: /home/ubuntu/myscript.sh
-    permissions: '0755'
-    owner: ubuntu:ubuntu
-    content: |
-      #!/bin/bash
-      cd /home/ubuntu
-      git clone https://github.com/DioRoman/shvirtd-example-python.git
-      mv shvirtd-example-python /opt
-      docker compose -f /opt/shvirtd-example-python/compose.yaml -f /opt/shvirtd-example-python/proxy.yaml up -d
+  - git
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+  - gnupg-agent
 
 runcmd:
-  - /home/ubuntu/myscript.sh
+  # Добавляем официальный GPG ключ Docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  # Добавляем репозиторий Docker
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  # Обновляем пакеты
+  - apt-get update -y
+  # Устанавливаем Docker и Docker Compose Plugin
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  # Добавляем текущего пользователя в группу docker
+  - usermod -aG docker $USER
+  # Добавляем пользователя в группу docker (запуск docker без sudo)
+  - usermod -aG docker ubuntu
+  # Переходим в домашнюю папку пользователя ubuntu
+  - cd /home/ubuntu
+  # Клонируем репозиторий с проектом
+  - git clone https://github.com/DioRoman/shvirtd-example-python.git
+  # Перемещаем проект в /opt
+  - mv shvirtd-example-python /opt
+  # Запускаем контейнеры в фоне через docker compose с двумя файлами конфигурации
+  - docker compose -f /opt/shvirtd-example-python/compose.yaml -f /opt/shvirtd-example-python/proxy.yaml up -d
