@@ -74,9 +74,9 @@ module "web-vm" {
 
   depends_on = [
   module.yandex-vpc,
-  # module.mysql,
-  # yandex_mdb_mysql_database.my_db,
-  # yandex_mdb_mysql_user.admin_user
+  module.mysql,
+  yandex_mdb_mysql_database.my_db,
+  yandex_mdb_mysql_user.admin_user
   ]
 }
 
@@ -85,6 +85,10 @@ data "template_file" "cloudinit" {
   template = file("./cloud-init.yml")
     vars = {
     ssh_public_key     = file(var.vm_ssh_root_key)
+    mysql_host    = module.mysql.fqdn
+    mysql_database = yandex_mdb_mysql_database.my_db.name
+    mysql_user    = yandex_mdb_mysql_user.admin_user.name
+    mysql_password = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
   }
 }
 
@@ -94,36 +98,36 @@ data "yandex_compute_image" "ubuntu" {
 }
 
 # Создание кластера MYSQL
-# module "mysql" {
-#   source = "github.com/terraform-yacloud-modules/terraform-yandex-mdb-mysql?ref=v1.20.0"
+module "mysql" {
+  source = "github.com/terraform-yacloud-modules/terraform-yandex-mdb-mysql?ref=v1.20.0"
 
-#   network_id     = module.yandex-vpc.network_id        
-#   subnet_zones   = [var.vpc_default_zone[0]]  
-#   subnet_id      = module.yandex-vpc.subnet_ids
-#   name           = "dio-mysql-cluster"
-#   version_sql    = "8.0"
-#   resource_preset_id = "b1.medium"
-#   disk_type_id   = "network-hdd"
-#   disk_size      = 10
-#   ha             = false
-#   assign_public_ip = false
+  network_id     = module.yandex-vpc.network_id        
+  subnet_zones   = [var.vpc_default_zone[0]]  
+  subnet_id      = module.yandex-vpc.subnet_ids
+  name           = "dio-mysql-cluster"
+  version_sql    = "8.0"
+  resource_preset_id = "b1.medium"
+  disk_type_id   = "network-hdd"
+  disk_size      = 10
+  ha             = false
+  assign_public_ip = false
 
-#   access = {
-#     web_sql = false
-#   }
+  access = {
+    web_sql = false
+  }
 
-#   performance_diagnostics = {
-#     enabled = false
-#   }
+  performance_diagnostics = {
+    enabled = false
+  }
 
-#   backup_window_start = null
-#   deletion_protection = false
+  backup_window_start = null
+  deletion_protection = false
   
-#   depends_on = [
-#   module.yandex-vpc
-#   ]
+  depends_on = [
+  module.yandex-vpc
+  ]
 
-# }
+}
 
 # Генерация пароля
 resource "random_password" "db_password" {
@@ -159,18 +163,18 @@ data "yandex_lockbox_secret_version" "mysql_password_data" {
 
 # Создание базы данных MYSQL
 
-# resource "yandex_mdb_mysql_database" "my_db" {
-#   cluster_id = module.mysql.id
-#   name       = "dio-db"
-# }
+resource "yandex_mdb_mysql_database" "my_db" {
+  cluster_id = module.mysql.id
+  name       = "dio-db"
+}
 
-# # Создание пользователя MYSQL
-# resource "yandex_mdb_mysql_user" "admin_user" {
-#   cluster_id = module.mysql.id
-#   name       = "dio"
-#   password = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
-#   permission {
-#     database_name = yandex_mdb_mysql_database.my_db.name
-#     roles         = ["ALL"]
-#   }
-# }
+# Создание пользователя MYSQL
+resource "yandex_mdb_mysql_user" "admin_user" {
+  cluster_id = module.mysql.id
+  name       = "dio"
+  password = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
+  permission {
+    database_name = yandex_mdb_mysql_database.my_db.name
+    roles         = ["ALL"]
+  }
+}

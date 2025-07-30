@@ -11,23 +11,26 @@ output "web_ssh" {
   ]
 }
 
-# output "mysql_host" {
-#   value = module.mysql.fqdn
-# }
+output "curl_webapp" {
+  description = "Curl to Web VMs"
+  value = [
+    for ip in module.web-vm.external_ips : "curl -L http://${ip}:8090"
+  ]
+}
 
-# output "mysql_port" {
-#   value = 3306
-# }
+output "mysql_host" {
+  value = module.mysql.fqdn
+}
 
-# output "mysql_database" {
-#   value = yandex_mdb_mysql_database.my_db.name
-# }
+output "mysql_database" {
+  value = yandex_mdb_mysql_database.my_db.name
+}
 
-# output "mysql_user" {
-#   value = yandex_mdb_mysql_user.admin_user.name
-# }
+output "mysql_user" {
+  value = yandex_mdb_mysql_user.admin_user.name
+}
 
-# output "mysql_password" {
-#   value     = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
-#   sensitive = true
-# }
+output "mysql_password" {
+  value     = data.yandex_lockbox_secret_version.mysql_password_data.entries[0].text_value
+  sensitive = true
+}
